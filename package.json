@@ -1,0 +1,66 @@
+{
+  "name": "opencode-dream",
+  "version": "0.1.0",
+  "description": "OpenCode plugin scaffold for OpenDream-style memory consolidation.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "oc-plugin": [
+    "server"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "docs",
+    "examples",
+    "integrations",
+    "README.md",
+    ".env.example"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "opendream",
+    "memory",
+    "github-copilot",
+    "typescript"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryurex/opencode-dream.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ryurex/opencode-dream/issues"
+  },
+  "homepage": "https://github.com/ryurex/opencode-dream#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.14.41",
+    "@opencode-ai/sdk": "^1.14.41"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.14.41",
+    "@opencode-ai/sdk": "^1.14.41",
+    "@types/node": "^22.15.21",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

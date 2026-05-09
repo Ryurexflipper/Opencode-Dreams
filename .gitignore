@@ -1,0 +1,28 @@
+# Node.js / TypeScript artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Test output
+coverage/
+.vitest/
+
+# Opencode-Dream local state (user-specific)
+.opencode-dream/
+
+# npm publish scratch
+*.tgz

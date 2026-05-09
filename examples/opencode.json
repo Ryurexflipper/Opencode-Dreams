@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "github-copilot/gpt-5.4",
+  "provider": {
+    "github-copilot": {}
+  },
+  "plugin": [
+    [
+      "file:///ABSOLUTE/PATH/TO/Opencode-Dream/dist/src/index.js",
+      {
+        "projectRelativeStateDir": ".opencode-dream",
+        "preferredReflectModel": "github-copilot/gpt-5.4",
+        "preferredDreamModel": "github-copilot/gpt-5.4"
+      }
+    ]
+  ]
+}
