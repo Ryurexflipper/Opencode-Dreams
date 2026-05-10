@@ -39,6 +39,10 @@ export interface TrueMemFetchError {
 
 export type TrueMemResult = TrueMemFetchResult | TrueMemFetchError
 
+function escapeManagedMarkers(value: string): string {
+  return value.replaceAll("<!--", "&lt;!--").replaceAll("-->", "--&gt;")
+}
+
 /**
  * Returns the default path to the true-mem SQLite database.
  */
@@ -217,7 +221,7 @@ export function renderTrueMemSection(
       ]
         .filter(Boolean)
         .join(", ")
-      lines.push(`- ${truncated}${meta ? ` _(${meta})_` : ""}`)
+      lines.push(`- ${escapeManagedMarkers(truncated)}${meta ? ` _(${meta})_` : ""}`)
     }
     lines.push(``)
   }

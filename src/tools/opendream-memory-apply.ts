@@ -1,13 +1,12 @@
 import { tool } from "@opencode-ai/plugin"
 import { readFile, writeFile } from "node:fs/promises"
-import { join } from "node:path"
 
 import type { DreamResolvedConfig } from "../config.js"
 import { listDreamConsolidations } from "../opendream/dream-store.js"
-import type { DreamConsolidation, DreamMemoryEntry } from "../opendream/dream.js"
+import { storedConsolidationFromJson, type DreamConsolidation, type DreamMemoryEntry } from "../opendream/dream.js"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function formatMemorySection(entries: DreamMemoryEntry[]): string {
@@ -60,7 +59,7 @@ function buildMemoryMarkdown(
 
   // Append mode: strip any existing dream block with the same id if present, then append
   const stripped = existingContent.replace(
-    new RegExp(`<!-- dream:${consolidation.id} -->[\\s\\S]*?<!-- /dream:${consolidation.id} -->\\n?`, "g"),
+    new RegExp(`<!-- dream:${escapeRegExp(consolidation.id)} -->[\\s\\S]*?<!-- /dream:${escapeRegExp(consolidation.id)} -->\\n?`, "g"),
     "",
   )
   return `${stripped.trimEnd()}\n\n${newSection}\n`
@@ -105,16 +104,25 @@ export function createOpencodeDreamMemoryApplyTool(config: DreamResolvedConfig) 
             2,
           )
         }
-        // Sort lexicographically (UUIDs are random but we list by mtime implicitly)
+        // listDreamConsolidations returns files sorted by mtime ascending.
         consolidationPath = files[files.length - 1]!
       }
 
-      const raw = await readFile(consolidationPath, "utf8")
-      const parsed = JSON.parse(raw) as unknown
-      if (!isRecord(parsed)) {
-        return JSON.stringify({ error: "Consolidation file is not a valid JSON object" }, null, 2)
+      let consolidation: DreamConsolidation
+      try {
+        const raw = await readFile(consolidationPath, "utf8")
+        const parsed = JSON.parse(raw) as unknown
+        consolidation = storedConsolidationFromJson(parsed)
+      } catch (error) {
+        return JSON.stringify(
+          {
+            error: `Invalid consolidation file: ${error instanceof Error ? error.message : String(error)}`,
+            consolidationFilePath: consolidationPath,
+          },
+          null,
+          2,
+        )
       }
-      const consolidation = parsed as unknown as DreamConsolidation
 
       // Read existing memory
       let existingContent = ""

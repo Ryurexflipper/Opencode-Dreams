@@ -81,7 +81,22 @@ export function createOpencodeDreamRunTool(
       }
 
       // Load all reflections
-      const reflections = await Promise.all(filePaths.map((fp) => readReflectionFile(fp)))
+      const reflections: Awaited<ReturnType<typeof readReflectionFile>>[] = []
+      for (const filePath of filePaths) {
+        try {
+          reflections.push(await readReflectionFile(filePath))
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          return JSON.stringify(
+            {
+              error: `Invalid reflection file: ${message}`,
+              reflectionFilePath: filePath,
+            },
+            null,
+            2,
+          )
+        }
+      }
 
       // Load existing memory
       let existingMemory = ""
@@ -147,7 +162,21 @@ export function createOpencodeDreamRunTool(
         )
       }
 
-      const consolidation = consolidationFromJson(parsed, reflections)
+      let consolidation
+      try {
+        consolidation = consolidationFromJson(parsed, reflections)
+      } catch (error) {
+        return JSON.stringify(
+          {
+            error: `Invalid consolidation payload: ${error instanceof Error ? error.message : String(error)}`,
+            rawText,
+            model,
+          },
+          null,
+          2,
+        )
+      }
+
       const filePath = await writeDreamConsolidation(config.stateDir, consolidation)
 
       return JSON.stringify(

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises"
 import { basename } from "node:path"
 import { randomUUID } from "node:crypto"
 
-import type { DreamReflection, DreamMemoryCandidate, DreamConfidence } from "./reflection.js"
+import { reflectionFromJson, type DreamReflection, type DreamMemoryCandidate, type DreamConfidence } from "./reflection.js"
 
 export type DreamThemeKind = "workflow" | "pattern" | "failure_mode" | "preference" | "fact"
 
@@ -191,12 +191,57 @@ export function consolidationFromJson(data: unknown, reflections: DreamReflectio
   }
 }
 
+export function storedConsolidationFromJson(data: unknown): DreamConsolidation {
+  if (!isRecord(data)) {
+    throw new Error("consolidation payload must be an object")
+  }
+
+  const themes: DreamTheme[] = Array.isArray(data.themes)
+    ? data.themes.map((item, i) => {
+        if (!isRecord(item)) throw new Error(`themes[${i}] must be an object`)
+        return {
+          kind: assertEnum(item.kind, ["workflow", "pattern", "failure_mode", "preference", "fact"], `themes[${i}].kind`),
+          title: assertString(item.title, `themes[${i}].title`),
+          summary: assertString(item.summary, `themes[${i}].summary`),
+          evidence_count: assertNumber(item.evidence_count, `themes[${i}].evidence_count`),
+          confidence: assertEnum(item.confidence, ["low", "medium", "high"], `themes[${i}].confidence`),
+          scope: assertEnum(item.scope, ["task_specific", "generalizable"], `themes[${i}].scope`),
+          source_sessions: assertStringArray(item.source_sessions, `themes[${i}].source_sessions`),
+        }
+      })
+    : []
+
+  const memory_entries: DreamMemoryEntry[] = Array.isArray(data.memory_entries)
+    ? data.memory_entries.map((item, i) => {
+        if (!isRecord(item)) throw new Error(`memory_entries[${i}] must be an object`)
+        return {
+          kind: assertEnum(item.kind, ["workflow", "pattern", "failure_mode", "preference", "fact"], `memory_entries[${i}].kind`),
+          content: assertString(item.content, `memory_entries[${i}].content`),
+          confidence: assertEnum(item.confidence, ["low", "medium", "high"], `memory_entries[${i}].confidence`),
+          scope: assertEnum(item.scope, ["task_specific", "generalizable"], `memory_entries[${i}].scope`),
+          source_sessions: assertStringArray(item.source_sessions, `memory_entries[${i}].source_sessions`),
+        }
+      })
+    : []
+
+  return {
+    id: assertString(data.id, "id"),
+    created_at: assertString(data.created_at, "created_at"),
+    session_count: assertNumber(data.session_count, "session_count"),
+    reflection_ids: assertStringArray(data.reflection_ids, "reflection_ids"),
+    themes,
+    memory_entries,
+    synthesis_notes: assertOptionalString(data.synthesis_notes, "synthesis_notes"),
+  }
+}
+
 export async function readReflectionFile(filePath: string): Promise<DreamReflection> {
   const text = await readFile(filePath, "utf8")
   const parsed = JSON.parse(text) as unknown
   if (!isRecord(parsed)) {
     throw new Error(`Reflection file ${basename(filePath)} is not a valid object`)
   }
-  // Light-cast: we trust our own stored files, just return
-  return parsed as unknown as DreamReflection
+
+  const sessionID = assertString(parsed.session_id, `Reflection file ${basename(filePath)}.session_id`)
+  return reflectionFromJson(parsed, sessionID)
 }

@@ -54,9 +54,16 @@ async function listUnprocessedSessionFiles(root: string): Promise<string[]> {
     }
     for (const entry of entries) {
       if (!entry.endsWith(".jsonl")) continue
-      const sessionID = entry.replace(/\.jsonl$/, "")
+      const filePath = join(dir, entry)
+      let sessionID = entry.replace(/\.jsonl$/, "")
+      try {
+        const session = await readGenericJsonlSessionFile(filePath)
+        sessionID = resolveDreamSessionID(session, filePath)
+      } catch {
+        // Fall back to filename-based behavior for unreadable/invalid session files.
+      }
       if (!existingReflections.has(sessionID)) {
-        result.push(join(dir, entry))
+        result.push(filePath)
       }
     }
   }
@@ -93,7 +100,6 @@ export function createOpencodeDreamReflectBatchTool(
         .describe("If true, only lists what would be processed without actually running reflections."),
     },
     async execute(args) {
-      const model = resolveModel(args.modelOverride, config)
       let pending = await listUnprocessedSessionFiles(config.stateDir)
 
       if (args.limit && args.limit > 0) {
@@ -122,6 +128,8 @@ export function createOpencodeDreamReflectBatchTool(
           2,
         )
       }
+
+      const model = resolveModel(args.modelOverride, config)
 
       const results: Array<{ sessionFile: string; status: "success" | "error"; reflectionFilePath?: string; error?: string }> = []
 

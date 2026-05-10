@@ -13,7 +13,8 @@ export function createOpencodeDreamIngestGenericJsonlTool(config: DreamResolvedC
     },
     async execute(args) {
       const validation = await validateGenericJsonlFile(args.filePath)
-      const copiedTo = args.copyIntoStateDir ? await importFileIntoDreamSessions(config.stateDir, args.filePath) : null
+      const shouldCopy = Boolean(args.copyIntoStateDir) && validation.invalidLines === 0 && validation.validLines > 0
+      const copiedTo = shouldCopy ? await importFileIntoDreamSessions(config.stateDir, args.filePath) : null
 
       return JSON.stringify(
         {
@@ -21,7 +22,10 @@ export function createOpencodeDreamIngestGenericJsonlTool(config: DreamResolvedC
           copiedTo,
           notes: [
             "This validates OpenDream-style generic_jsonl structure only.",
-            "It does not yet create Stage 1 reflections or Stage 2 dreams."
+            "It does not yet create Stage 1 reflections or Stage 2 dreams.",
+            ...(args.copyIntoStateDir && !shouldCopy
+              ? ["File was not copied into state because validation did not produce at least one valid line with zero invalid lines."]
+              : []),
           ]
         },
         null,

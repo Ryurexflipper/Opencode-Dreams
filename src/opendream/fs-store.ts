@@ -109,7 +109,15 @@ export async function importFileIntoDreamSessions(root: string, sourcePath: stri
   const targetDir = join(root, "sessions", "imports")
   await mkdir(targetDir, { recursive: true })
   const parsed = parse(sourcePath)
-  const destination = join(targetDir, `${parsed.name}${parsed.ext || ".jsonl"}`)
+  const extension = parsed.ext || ".jsonl"
+  let destination = join(targetDir, `${parsed.name}${extension}`)
+  let suffix = 1
+
+  while (await exists(destination)) {
+    destination = join(targetDir, `${parsed.name}-${suffix}${extension}`)
+    suffix += 1
+  }
+
   await copyFile(sourcePath, destination)
   return destination
 }

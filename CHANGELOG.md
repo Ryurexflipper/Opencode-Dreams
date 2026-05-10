@@ -7,25 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- `opendream_reflect_batch` — batch Stage 1 reflection across all unprocessed sessions
-- `opendream_dream_run` — Stage 2 LLM-backed memory consolidation from all reflections
-- `opendream_dream_prompt` — dry-run Stage 2 consolidation prompt rendering
-- `opendream_memory_apply` — apply dream consolidation entries to `memory/current.md`
-- Improved `opendream_info` with pipeline status (pending reflections, dream count, full tool inventory)
-- `src/opendream/dream.ts` — `DreamConsolidation` type, prompt renderer, JSON validator
-- `src/opendream/dream-store.ts` — consolidation file I/O helpers
-
-## [0.1.0] - 2026-05-09
+## [0.1.0] - 2026-05-10
 
 ### Added
-- Plugin scaffold with full filesystem layout management
-- Generic JSONL session ingest (`opendream_ingest_generic_jsonl`)
-- Event-driven live session capture via `event` hook
-- Stage 1 reflection prompt rendering (`opendream_reflect_prompt`)
-- Validated reflection JSON import (`opendream_reflect_import_json`)
-- Automatic LLM-backed Stage 1 reflection (`opendream_reflect_run`)
-- AGENTS.md managed export (`opendream_export_agents`)
-- Compaction hook — injects `memory/current.md` into session compaction
-- Shell env hook — exposes `OPENCODE_DREAM_ROOT` and friends
-- Vitest test suite (6 tests)
+- initial OpenCode plugin packaging and filesystem layout
+- generic JSONL session ingest
+- event-driven live session capture
+- Stage 1 reflection prompt rendering and JSON import
+- Stage 1 LLM-backed reflection execution
+- Stage 2 prompt rendering and LLM-backed consolidation execution
+- memory application into `memory/current.md`
+- managed `AGENTS.md` export
+- compaction-context memory injection
+- shell environment hook for state/model paths
+- external memory synchronization support
+- full staged Dream pipeline documentation covering setup, architecture, integrations, and self-improvement flow
+- `tests/phase1-hardening.test.ts` through `tests/phase8-hardening.test.ts` (182 tests total)
+- direct regression coverage for:
+  - config path confinement
+  - managed-marker neutralization
+  - ingest validation and import collisions
+  - live-capture terminal-state safety and multipart correctness
+  - reflection input ambiguity and malformed stored reflection handling
+  - invalid parsed consolidation handling
+  - reflect-import tool-boundary structured errors
+  - repeated memory/apply/export cycle stability
+
+### Changed
+- README and supporting docs reflect the current implemented system
+- hardening baseline documented through optional Phase 8
+- verification baseline: 182/182 tests passing
+
+### Fixed
+- tool boundaries return structured JSON errors for malformed reflection/session/consolidation inputs in key recovery paths
+- AGENTS export and external-memory rendering resist marker corruption and malformed topology
+- live capture rejects late post-terminal mutations and degrades incomplete streams safely
+- memory apply and export flows are stable across repeated append/replace cycles

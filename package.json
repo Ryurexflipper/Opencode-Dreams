@@ -1,10 +1,13 @@
 {
-  "name": "opencode-dream",
+  "name": "opencode-dreams",
   "version": "0.1.0",
-  "description": "OpenCode plugin scaffold for OpenDream-style memory consolidation.",
+  "description": "OpenCode plugin: two-stage reflection & memory consolidation pipeline with support for opencode-mem, true-mem, simple-memory, and opencode-lcm.",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "oc-plugin": [
     "server"
   ],
@@ -14,7 +17,10 @@
     "docs",
     "examples",
     "integrations",
-    "README.md",
+    "readme.md",
+    "INTEGRATIONS.md",
+    "CHANGELOG.md",
+    "LICENSE",
     ".env.example"
   ],
   "exports": {
@@ -25,7 +31,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -34,21 +40,27 @@
   },
   "keywords": [
     "opencode",
-    "plugin",
+    "opencode-plugin",
     "opendream",
     "memory",
+    "memory-consolidation",
+    "reflection",
+    "ai-agent",
     "github-copilot",
-    "typescript"
+    "typescript",
+    "opencode-mem",
+    "true-mem",
+    "opencode-lcm"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ryurex/opencode-dream.git"
+    "url": "https://github.com/ryurexflipper/Opencode-Dreams.git"
   },
   "bugs": {
-    "url": "https://github.com/ryurex/opencode-dream/issues"
+    "url": "https://github.com/ryurexflipper/Opencode-Dreams/issues"
   },
-  "homepage": "https://github.com/ryurex/opencode-dream#readme",
+  "homepage": "https://github.com/ryurexflipper/Opencode-Dreams#readme",
   "publishConfig": {
     "access": "public"
   },

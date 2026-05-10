@@ -33,6 +33,10 @@ interface CaptureState {
   next_order: number
 }
 
+function isTerminalState(state: CaptureState): boolean {
+  return Boolean(state.ended_at) || state.outcome_known
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
@@ -269,6 +273,9 @@ export async function processDreamEventCapture(config: DreamResolvedConfig, even
 
   if (event.type === "session.updated") {
     const state = (await readState(config, event.properties.info.id)) ?? createFallbackState(event.properties.info.id)
+    if (isTerminalState(state)) {
+      return { action: "session-updated-ignored-terminal", sessionID: state.session_id }
+    }
     state.project_id = event.properties.info.projectID
     state.task_description = event.properties.info.title
     state.metadata.opencode_session_version = event.properties.info.version
@@ -279,6 +286,9 @@ export async function processDreamEventCapture(config: DreamResolvedConfig, even
 
   if (event.type === "message.updated") {
     const state = (await readState(config, event.properties.info.sessionID)) ?? createFallbackState(event.properties.info.sessionID)
+    if (isTerminalState(state)) {
+      return { action: "message-updated-ignored-terminal", sessionID: state.session_id }
+    }
     upsertMessageRole(state, event.properties.info)
     await writeState(config, state)
     return { action: "message-updated", sessionID: state.session_id }
@@ -286,6 +296,9 @@ export async function processDreamEventCapture(config: DreamResolvedConfig, even
 
   if (event.type === "message.part.updated") {
     const state = (await readState(config, event.properties.part.sessionID)) ?? createFallbackState(event.properties.part.sessionID)
+    if (isTerminalState(state)) {
+      return { action: "message-part-updated-ignored-terminal", sessionID: state.session_id }
+    }
     const part = normalizePart(event)
     if (!part) return null
     upsertPart(state, part)

@@ -356,15 +356,19 @@ export function reflectionFromJson(data: unknown, sessionID: string): DreamRefle
 }
 
 export async function readReflectionJsonInput(input: { reflectionJson?: string; reflectionFilePath?: string }): Promise<unknown> {
-  if (input.reflectionJson && input.reflectionFilePath) {
+  const { reflectionJson, reflectionFilePath } = input
+  const hasReflectionJson = reflectionJson !== undefined
+  const hasReflectionFilePath = reflectionFilePath !== undefined
+
+  if (hasReflectionJson && hasReflectionFilePath) {
     throw new Error("Provide either reflectionJson or reflectionFilePath, not both")
   }
-  if (!input.reflectionJson && !input.reflectionFilePath) {
+  if (!hasReflectionJson && !hasReflectionFilePath) {
     throw new Error("Provide reflectionJson or reflectionFilePath")
   }
-  if (input.reflectionJson) {
-    return JSON.parse(input.reflectionJson) as unknown
+  if (hasReflectionJson) {
+    return JSON.parse(reflectionJson) as unknown
   }
 
-  return JSON.parse(await readFile(input.reflectionFilePath as string, "utf8")) as unknown
+  return JSON.parse(await readFile(reflectionFilePath as string, "utf8")) as unknown
 }

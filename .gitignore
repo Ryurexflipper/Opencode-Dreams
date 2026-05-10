@@ -23,6 +23,7 @@ coverage/
 
 # Opencode-Dream local state (user-specific)
 .opencode-dream/
+.logs/
 
 # npm publish scratch
 *.tgz

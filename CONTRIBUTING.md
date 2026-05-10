@@ -4,7 +4,7 @@ Thank you for your interest in contributing! This document describes the develop
 
 ## Prerequisites
 
-- Node.js 22+ (LTS)
+- Node.js 20+ 
 - npm 10+
 - TypeScript knowledge
 
@@ -76,6 +76,19 @@ npm test
 - Include a summary in the PR description
 - All CI checks must pass (typecheck + build + test)
 - Update `CHANGELOG.md` under `[Unreleased]`
+
+## Release readiness
+
+Before publishing to npm or creating a GitHub release, verify:
+
+```bash
+npm run typecheck
+npm run build
+npm test
+npm pack --dry-run
+```
+
+Confirm the package preview includes the intended runtime files, docs, changelog, and license.
 
 ## License
 

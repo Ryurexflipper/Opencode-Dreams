@@ -234,29 +234,40 @@ describe("opencode-dream config", () => {
   })
 
   it("opendream_reflect_run throws a clear error when no model is configured", async () => {
+    const previousReflectModel = process.env.OPENCODE_DREAM_REFLECT_MODEL
+    delete process.env.OPENCODE_DREAM_REFLECT_MODEL
+
     const root = await mkdtemp(join(tmpdir(), "opencode-dream-reflect-run-"))
-    const config = resolveDreamConfig(root, { preferredReflectModel: undefined })
-    // A stub client — the tool should throw before ever calling it
-    const stubClient = {} as Parameters<typeof createOpencodeDreamReflectRunTool>[1]
-    const runTool = createOpencodeDreamReflectRunTool(config, stubClient)
+    try {
+      const config = resolveDreamConfig(root, { preferredReflectModel: undefined })
+      // A stub client — the tool should throw before ever calling it
+      const stubClient = {} as Parameters<typeof createOpencodeDreamReflectRunTool>[1]
+      const runTool = createOpencodeDreamReflectRunTool(config, stubClient)
 
-    // Write a minimal session file
-    const sessionFile = join(root, "session.jsonl")
-    await writeFile(
-      sessionFile,
-      JSON.stringify({
-        agent: "build",
-        started_at: "2026-05-09T00:00:00.000Z",
-        messages: [{ index: 0, role: "user", content: "hello" }],
-      }) + "\n",
-      "utf8",
-    )
+      // Write a minimal session file
+      const sessionFile = join(root, "session.jsonl")
+      await writeFile(
+        sessionFile,
+        JSON.stringify({
+          agent: "build",
+          started_at: "2026-05-09T00:00:00.000Z",
+          messages: [{ index: 0, role: "user", content: "hello" }],
+        }) + "\n",
+        "utf8",
+      )
 
-    await expect(
-      (runTool as unknown as { execute(args: Record<string, unknown>): Promise<string> }).execute({
-        sessionFilePath: sessionFile,
-      }),
-    ).rejects.toThrow(/No reflect model configured/)
+      await expect(
+        (runTool as unknown as { execute(args: Record<string, unknown>): Promise<string> }).execute({
+          sessionFilePath: sessionFile,
+        }),
+      ).rejects.toThrow(/No reflect model configured/)
+    } finally {
+      if (previousReflectModel === undefined) {
+        delete process.env.OPENCODE_DREAM_REFLECT_MODEL
+      } else {
+        process.env.OPENCODE_DREAM_REFLECT_MODEL = previousReflectModel
+      }
+    }
   })
 })
 
@@ -374,14 +385,25 @@ describe("dream consolidation", () => {
   })
 
   it("opendream_dream_run throws when no dream model configured", async () => {
-    const root = await mkdtemp(join(tmpdir(), "opencode-dream-run-nomodel-"))
-    const config = resolveDreamConfig(root, { preferredDreamModel: undefined })
-    const stubClient = {} as Parameters<typeof createOpencodeDreamRunTool>[1]
-    const dreamTool = createOpencodeDreamRunTool(config, stubClient)
+    const previousDreamModel = process.env.OPENCODE_DREAM_DREAM_MODEL
+    delete process.env.OPENCODE_DREAM_DREAM_MODEL
 
-    await expect(
-      (dreamTool as unknown as { execute(args: Record<string, unknown>): Promise<string> }).execute({}),
-    ).rejects.toThrow(/No dream model configured/)
+    const root = await mkdtemp(join(tmpdir(), "opencode-dream-run-nomodel-"))
+    try {
+      const config = resolveDreamConfig(root, { preferredDreamModel: undefined })
+      const stubClient = {} as Parameters<typeof createOpencodeDreamRunTool>[1]
+      const dreamTool = createOpencodeDreamRunTool(config, stubClient)
+
+      await expect(
+        (dreamTool as unknown as { execute(args: Record<string, unknown>): Promise<string> }).execute({}),
+      ).rejects.toThrow(/No dream model configured/)
+    } finally {
+      if (previousDreamModel === undefined) {
+        delete process.env.OPENCODE_DREAM_DREAM_MODEL
+      } else {
+        process.env.OPENCODE_DREAM_DREAM_MODEL = previousDreamModel
+      }
+    }
   })
 })
 

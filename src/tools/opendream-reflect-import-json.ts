@@ -14,24 +14,36 @@ export function createOpencodeDreamReflectImportJsonTool(config: DreamResolvedCo
       reflectionFilePath: tool.schema.string().optional().describe("Path to a reflection JSON file to validate and store"),
     },
     async execute(args) {
-      const session = await readGenericJsonlSessionFile(args.sessionFilePath)
-      const sessionID = resolveDreamSessionID(session, args.sessionFilePath)
-      const raw = await readReflectionJsonInput({
-        reflectionJson: args.reflectionJson,
-        reflectionFilePath: args.reflectionFilePath,
-      })
-      const reflection = reflectionFromJson(raw, sessionID)
-      const filePath = await writeDreamReflection(config.stateDir, sessionID, reflection)
+      try {
+        const session = await readGenericJsonlSessionFile(args.sessionFilePath)
+        const sessionID = resolveDreamSessionID(session, args.sessionFilePath)
+        const raw = await readReflectionJsonInput({
+          reflectionJson: args.reflectionJson,
+          reflectionFilePath: args.reflectionFilePath,
+        })
+        const reflection = reflectionFromJson(raw, sessionID)
+        const filePath = await writeDreamReflection(config.stateDir, sessionID, reflection)
 
-      return JSON.stringify(
-        {
-          sessionID,
-          filePath,
-          reflection,
-        },
-        null,
-        2,
-      )
+        return JSON.stringify(
+          {
+            sessionID,
+            filePath,
+            reflection,
+          },
+          null,
+          2,
+        )
+      } catch (error) {
+        return JSON.stringify(
+          {
+            error: error instanceof Error ? error.message : String(error),
+            sessionFilePath: args.sessionFilePath,
+            reflectionFilePath: args.reflectionFilePath,
+          },
+          null,
+          2,
+        )
+      }
     },
   })
 }

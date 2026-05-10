@@ -31,7 +31,22 @@ export function createOpencodeDreamPromptTool(config: DreamResolvedConfig) {
         )
       }
 
-      const reflections = await Promise.all(filePaths.map((fp) => readReflectionFile(fp)))
+      const reflections: Awaited<ReturnType<typeof readReflectionFile>>[] = []
+      for (const filePath of filePaths) {
+        try {
+          reflections.push(await readReflectionFile(filePath))
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          return JSON.stringify(
+            {
+              error: `Invalid reflection file: ${message}`,
+              reflectionFilePath: filePath,
+            },
+            null,
+            2,
+          )
+        }
+      }
 
       let existingMemory = ""
       try {

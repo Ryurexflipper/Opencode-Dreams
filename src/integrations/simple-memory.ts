@@ -43,6 +43,10 @@ export interface SimpleMemoryFetchError {
 
 export type SimpleMemoryResult = SimpleMemoryFetchResult | SimpleMemoryFetchError
 
+function escapeManagedMarkers(value: string): string {
+  return value.replaceAll("<!--", "&lt;!--").replaceAll("-->", "--&gt;")
+}
+
 /**
  * Returns the default simple-memory directory for a project.
  */
@@ -230,7 +234,7 @@ export function renderSimpleMemorySection(
     lines.push(``)
     for (const item of group) {
       const truncated = item.content.length > maxLen ? item.content.slice(0, maxLen) + "…" : item.content
-      lines.push(`- ${truncated}${item.scope !== "user" ? ` _(scope: ${item.scope})_` : ""}`)
+      lines.push(`- ${escapeManagedMarkers(truncated)}${item.scope !== "user" ? ` _(scope: ${item.scope})_` : ""}`)
     }
     lines.push(``)
   }

@@ -47,6 +47,10 @@ export interface LcmFetchError {
 
 export type LcmResult = LcmFetchResult | LcmFetchError
 
+function escapeManagedMarkers(value: string): string {
+  return value.replaceAll("<!--", "&lt;!--").replaceAll("-->", "--&gt;")
+}
+
 /**
  * Returns the default path to the opencode-lcm SQLite database.
  */
@@ -269,7 +273,7 @@ export function renderLcmSection(
     for (const s of summaries) {
       const truncated = s.content.length > maxLen ? s.content.slice(0, maxLen) + "…" : s.content
       lines.push(`#### Session ${s.sessionId} (${s.createdAt})`)
-      lines.push(truncated)
+      lines.push(escapeManagedMarkers(truncated))
       lines.push(``)
     }
   }
@@ -280,7 +284,7 @@ export function renderLcmSection(
     for (const a of artifacts) {
       const truncated = a.content.length > maxLen ? a.content.slice(0, maxLen) + "…" : a.content
       lines.push(`#### ${a.name} _(${a.type})_`)
-      lines.push(truncated)
+      lines.push(escapeManagedMarkers(truncated))
       lines.push(``)
     }
   }

@@ -34,6 +34,10 @@ export interface OpencodeMemFetchError {
 
 export type OpencodeMemResult = OpencodeMemFetchResult | OpencodeMemFetchError
 
+function escapeManagedMarkers(value: string): string {
+  return value.replaceAll("<!--", "&lt;!--").replaceAll("-->", "--&gt;")
+}
+
 /**
  * Fetches all memory items from an opencode-mem HTTP server.
  * Never throws — all errors are returned as `{ ok: false, reason }`.
@@ -119,7 +123,7 @@ export function renderOpencodeMemSection(
   for (const item of items) {
     const truncated = item.content.length > maxLen ? item.content.slice(0, maxLen) + "…" : item.content
     lines.push(`### [${item.id}]`)
-    lines.push(truncated)
+    lines.push(escapeManagedMarkers(truncated))
     lines.push(``)
   }
 

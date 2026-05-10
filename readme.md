@@ -1,176 +1,172 @@
-# Opencode-Dream
+# opencode-dream
 
-**Opencode-Dream** is an [OpenCode](https://github.com/sst/opencode) plugin that implements the Dream pipeline — a two-stage reflection-and-consolidation system for turning live AI coding sessions into durable, reusable memory.
+`opencode-dream` is an [OpenCode](https://github.com/sst/opencode) plugin that turns coding sessions into durable memory through a two-stage **Reflect → Dream** pipeline.
 
-## Overview
+It is heavily inspired by the broader **OpenDream** model and ecosystem. This repository adapts that backbone into a concrete OpenCode plugin implementation with its own hardening, packaging, integration, and operational layers. Credit for the underlying Reflect/Dream conceptual backbone belongs to the original OpenDream work and maintainers.
 
+It combines:
+- live session capture and imported trace ingestion
+- per-session reflection generation
+- cross-session consolidation into durable memory
+- export into `AGENTS.md`
+- external memory sync from popular OpenCode memory plugins
+- a regression-hardened baseline validated through adversarial testing phases
+
+```text
+Live session / imported trace
+  -> Stage 1: Reflect
+  -> Stage 2: Dream
+  -> memory/current.md
+  -> AGENTS.md
 ```
-Live session  →  Stage 1: Reflection  →  Stage 2: Dream  →  memory/current.md  →  AGENTS.md
-(JSONL trace)    (per-session JSON)       (consolidated)      (apply entries)       (export)
-```
 
-The plugin runs inside OpenCode as a first-class plugin and provides:
+## Current baseline
 
-- **Live capture** — event-driven snapshot of every session as it runs
-- **Stage 1 Reflection** — LLM-backed per-session analysis into structured JSON
-- **Stage 2 Dream** — cross-session memory synthesis into a dream consolidation
-- **Memory apply** — writes dream entries into `memory/current.md`
-- **AGENTS.md export** — injects consolidated memory into a managed section of `AGENTS.md`
+- End-to-end pipeline is implemented
+- Hardening baseline spans Phases 1–8
+- Latest verified baseline: **182/182 tests passing**
 
----
+See also:
+- `docs/ARCHITECTURE.md`
+- `docs/INSTALL.md`
+- `docs/OPENDREAM-MAPPING.md`
+- `docs/adversarial-hardening-status.md`
 
 ## Installation
 
+```bash
+npm install opencode-dream
+```
+
+Then register the plugin in `opencode.json`:
+
 ```jsonc
-// opencode.json (or opencode.jsonc)
 {
   "plugin": [
-    ["file:///path/to/opencode-dream/src/index.ts", {
-      "preferredReflectModel": "github-copilot/gpt-4.1",
-      "preferredDreamModel": "github-copilot/gpt-4.1"
+    ["opencode-dream", {
+      "preferredReflectModel": "github-copilot/gpt-5.4",
+      "preferredDreamModel": "github-copilot/gpt-5.4"
     }]
   ]
 }
 ```
 
-### Plugin options
+## What it does
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `projectRelativeStateDir` | `string` | `.opencode-dream` | Where state is stored, relative to project root |
-| `memoryFile` | `string` | `<stateDir>/memory/current.md` | Memory source file for AGENTS.md export |
-| `agentsFile` | `string` | `AGENTS.md` | Target AGENTS.md path |
-| `captureLiveSessions` | `boolean` | `true` | Whether to capture live session events |
-| `preferredReflectModel` | `string` | — | Model for Stage 1 reflection (`providerID/modelID`) |
-| `preferredDreamModel` | `string` | — | Model for Stage 2 consolidation (`providerID/modelID`) |
-| `logLevel` | `string` | `info` | One of `debug`, `info`, `warn`, `error` |
+### Capture and ingest
+- auto-captures live sessions into `.opencode-dream/sessions/live/`
+- stores transient capture state in `.opencode-dream/sessions/runtime/`
+- imports external traces into `.opencode-dream/sessions/imports/`
 
-### Environment variables
+### Stage 1: Reflect
+- renders reflection prompts
+- runs LLM-backed reflection for one session or in batch
+- imports externally generated reflection JSON
+- stores validated reflections in `.opencode-dream/reflections/`
 
-| Variable | Description |
-|----------|-------------|
-| `OPENCODE_DREAM_REFLECT_MODEL` | Fallback reflect model |
-| `OPENCODE_DREAM_DREAM_MODEL` | Fallback dream model |
-| `OPENCODE_DREAM_API_KEY` | Optional API key for future direct model calls |
+### Stage 2: Dream
+- renders consolidation prompts
+- runs LLM-backed consolidation across stored reflections
+- stores validated dream outputs in `.opencode-dream/dreams/`
 
----
+### Memory and export
+- applies consolidation entries into `.opencode-dream/memory/current.md`
+- exports current memory into one managed `AGENTS.md` block
+- injects consolidated memory into session compaction context
 
-## State directory layout
+### External memory sync
+- supports:
+  - `opencode-mem`
+  - `true-mem`
+  - `simple-memory`
+  - `opencode-lcm`
+- merges each source into tagged blocks inside `memory/current.md`
 
-```
+## Hooks
+
+The plugin registers three hooks:
+- `event` — live session capture
+- `shell.env` — exports resolved state/model env vars
+- `experimental.session.compacting` — injects current memory into compaction
+
+## State layout
+
+```text
 .opencode-dream/
-  memory/
-    current.md          ← edit this; it is what gets exported to AGENTS.md
   sessions/
-    imports/            ← manually imported .jsonl traces
-    live/               ← auto-captured live session snapshots
-    runtime/            ← transient capture state (safe to delete)
-  reflections/          ← Stage 1 reflection JSON files (one per session)
-  dreams/               ← Stage 2 dream consolidation files
+    imports/
+    live/
+    runtime/
+  reflections/
+  dreams/
+  memory/
+    current.md
   docs/
-    README.md           ← auto-generated layout documentation
+    README.md
 ```
-
----
 
 ## Available tools
 
-### Setup & Status
+The plugin currently exposes **15 tools**:
 
-| Tool | Description |
-|------|-------------|
-| `opendream_init` | Creates the `.opencode-dream` directory layout |
-| `opendream_info` | Shows config, pipeline status, and full tool inventory |
-| `opendream_memory_status` | Summarises captured sessions, reflections, and memory file |
+- setup/status
+  - `opendream_info`
+  - `opendream_init`
+  - `opendream_memory_status`
+- session ingest
+  - `opendream_ingest_generic_jsonl`
+- Stage 1 reflection
+  - `opendream_reflect_prompt`
+  - `opendream_reflect_import_json`
+  - `opendream_reflect_run`
+  - `opendream_reflect_batch`
+- Stage 2 dream
+  - `opendream_dream_prompt`
+  - `opendream_dream_run`
+- memory/export
+  - `opendream_memory_apply`
+  - `opendream_export_agents`
+- external memory
+  - `opendream_mem_probe`
+  - `opendream_mem_sync`
+  - `opendream_ext_mem_sync`
 
-### Session Ingest
+## How it improves itself over time
 
-| Tool | Description |
-|------|-------------|
-| `opendream_ingest_generic_jsonl` | Imports a JSONL session file into `sessions/imports/` |
+The system improves in two ways:
 
-### Stage 1: Reflection
+1. **Knowledge compounding**
+   - sessions become reflections
+   - reflections become consolidations
+   - consolidations become durable memory
+   - memory is reinjected into future sessions and exports
 
-| Tool | Description |
-|------|-------------|
-| `opendream_reflect_prompt` | Dry-run: renders the reflection prompt without calling a model |
-| `opendream_reflect_import_json` | Validates and stores a reflection JSON you provide externally |
-| `opendream_reflect_run` | Runs Stage 1 on a single session file via LLM |
-| `opendream_reflect_batch` | Batch Stage 1: reflects on all sessions without reflections yet |
+2. **Reliability compounding**
+   - adversarial hardening Phases 1–8 added direct regression coverage for path safety, marker handling, live-capture integrity, reflection/dream validation, and memory/export stability
+   - recoverable tool-boundary failures now return structured JSON instead of crashing in key paths
 
-### Stage 2: Dream Consolidation
+## Release quality
 
-| Tool | Description |
-|------|-------------|
-| `opendream_dream_prompt` | Dry-run: renders the consolidation prompt without calling a model |
-| `opendream_dream_run` | Runs Stage 2: synthesizes all reflections into a dream consolidation via LLM |
+- Node.js >= 20
+- ESM-only package
+- `npm run typecheck`
+- `npm run build`
+- `npm test`
 
-### Memory & Export
+Current maintained verification baseline: **182/182 tests passing**.
 
-| Tool | Description |
-|------|-------------|
-| `opendream_memory_apply` | Applies dream consolidation entries into `memory/current.md` |
-| `opendream_export_agents` | Exports `memory/current.md` into the `AGENTS.md` managed section |
+## Documentation map
 
----
+- `docs/INSTALL.md` — install and first-run flow
+- `docs/ARCHITECTURE.md` — subsystem/data-flow overview
+- `docs/OPENDREAM-MAPPING.md` — OpenDream concept mapping
+- `INTEGRATIONS.md` — external memory sources and merge model
+- `docs/adversarial-hardening-status.md` — hardening history and current baseline
 
-## Recommended workflow
+## Attribution
 
-```
-1. opendream_init
-   → Creates .opencode-dream/ layout
-
-2. [Sessions run automatically]
-   → Live capture saves snapshots to sessions/live/
-
-3. opendream_reflect_batch
-   → Runs Stage 1 on all unprocessed sessions (or use opendream_reflect_run per-file)
-
-4. opendream_dream_run
-   → Stage 2: synthesizes all reflections → saves to dreams/
-
-5. opendream_memory_apply
-   → Applies dream entries into memory/current.md
-
-6. opendream_export_agents
-   → Injects memory into AGENTS.md between managed markers
-
-7. Commit AGENTS.md
-   → Future sessions start with consolidated context
-```
-
----
-
-## Development
-
-```bash
-npm install
-npm run typecheck
-npm run build
-npm test
-```
-
-Tests use [Vitest](https://vitest.dev/) and do not require a live OpenCode instance.
-
-### Adding a new tool
-
-1. Create `src/tools/opendream-<name>.ts` with a `createOpencodeDream<Name>Tool` factory
-2. Register it in `src/index.ts`
-3. Add smoke tests in `tests/opencode-dream-smoke.test.ts`
-
----
-
-## Architecture notes
-
-- Plugin is ESM-only (`"type": "module"`)
-- Peer deps: `@opencode-ai/plugin ^1.14.41`, `@opencode-ai/sdk ^1.14.41`
-- All tools follow the `tool({ description, args, execute })` pattern from `@opencode-ai/plugin`
-- `tool.schema` is Zod — all args use `.describe()`
-- LLM calls go through `client.session.create()` + `client.session.prompt()` — no direct API calls
-- Ephemeral sessions are always deleted in a `finally` block
-- Error paths return structured JSON strings (not throws) for recoverable failures
-
----
+- Conceptual backbone: the broader **OpenDream** reflection/consolidation model
+- This repository: an OpenCode-specific implementation, hardening pass, and releaseable plugin built on top of that conceptual foundation
 
 ## License
 

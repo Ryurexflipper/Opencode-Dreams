@@ -1,4 +1,4 @@
-import { join, resolve } from "node:path"
+import { isAbsolute, join, relative, resolve } from "node:path"
 
 export interface DreamPluginOptions {
   projectRelativeStateDir?: string
@@ -45,14 +45,21 @@ export function resolveDreamConfig(
   options: Record<string, unknown> | undefined,
 ): DreamResolvedConfig {
   const typed = (options ?? {}) as DreamPluginOptions
-  const stateDir = resolve(directory, typed.projectRelativeStateDir ?? ".opencode-dream")
+  const projectRoot = resolve(directory)
+  const stateDir = assertWithinProjectRoot(projectRoot, resolve(directory, typed.projectRelativeStateDir ?? ".opencode-dream"), "projectRelativeStateDir")
+  const memoryFile = typed.memoryFile
+    ? assertWithinProjectRoot(projectRoot, resolve(directory, typed.memoryFile), "memoryFile")
+    : join(stateDir, "memory", "current.md")
+  const agentsFile = typed.agentsFile
+    ? assertWithinProjectRoot(projectRoot, resolve(directory, typed.agentsFile), "agentsFile")
+    : resolve(directory, "AGENTS.md")
 
   return {
     pluginId: "opencode-dream",
     pluginName: "Opencode-Dream",
     stateDir,
-    memoryFile: typed.memoryFile ? resolve(directory, typed.memoryFile) : join(stateDir, "memory", "current.md"),
-    agentsFile: typed.agentsFile ? resolve(directory, typed.agentsFile) : resolve(directory, "AGENTS.md"),
+    memoryFile,
+    agentsFile,
     captureLiveSessions: typed.captureLiveSessions ?? true,
     sessionLiveDir: join(stateDir, "sessions", "live"),
     sessionRuntimeDir: join(stateDir, "sessions", "runtime"),
@@ -67,4 +74,12 @@ export function resolveDreamConfig(
       maxItemLength: typed.opencodeMem?.maxItemLength ?? 1000,
     },
   }
+}
+
+function assertWithinProjectRoot(projectRoot: string, targetPath: string, label: string): string {
+  const rel = relative(projectRoot, targetPath)
+  if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) {
+    return targetPath
+  }
+  throw new Error(`${label} must stay within the project root: ${projectRoot}`)
 }

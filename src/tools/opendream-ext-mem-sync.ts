@@ -187,18 +187,22 @@ export function createOpendreamExtMemSyncTool(config: DreamResolvedConfig) {
 
       // Apply each section in order
       let merged = currentContent
-      for (const section of sections) {
-        // Detect which source this section belongs to by its comment tag
-        if (section.includes("opencode-mem:sync")) {
-          merged = mergeOpencodeMemSection(merged, section, mode)
-        } else if (section.includes("true-mem:sync")) {
-          merged = mergeTrueMemSection(merged, section, mode)
-        } else if (section.includes("simple-memory:sync")) {
-          merged = mergeSimpleMemorySection(merged, section, mode)
-        } else if (section.includes("opencode-lcm:sync")) {
-          merged = mergeLcmSection(merged, section, mode)
-        } else {
-          merged = `${merged.trimEnd()}\n\n${section}\n`
+      if (mode === "replace") {
+        merged = `${sections.join("\n\n")}\n`
+      } else {
+        for (const section of sections) {
+          // Detect which source this section belongs to by its comment tag
+          if (section.includes("opencode-mem:sync")) {
+            merged = mergeOpencodeMemSection(merged, section, mode)
+          } else if (section.includes("true-mem:sync")) {
+            merged = mergeTrueMemSection(merged, section, mode)
+          } else if (section.includes("simple-memory:sync")) {
+            merged = mergeSimpleMemorySection(merged, section, mode)
+          } else if (section.includes("opencode-lcm:sync")) {
+            merged = mergeLcmSection(merged, section, mode)
+          } else {
+            merged = `${merged.trimEnd()}\n\n${section}\n`
+          }
         }
       }
 

@@ -3,21 +3,14 @@ import { readFile } from "node:fs/promises"
 import { tool } from "@opencode-ai/plugin"
 
 import type { DreamResolvedConfig } from "../config.js"
-import { DREAM_BEGIN_MARKER, DREAM_END_MARKER } from "../opendream/constants.js"
-import { exportDreamManagedSection } from "../opendream/agents-md.js"
+import { buildDreamManagedBlock, exportDreamManagedSection, findDreamManagedBlockBounds } from "../opendream/agents-md.js"
 import { readCurrentMemory } from "../opendream/fs-store.js"
 
 async function buildPreview(
   agentsFile: string,
   memoryMarkdown: string,
 ): Promise<{ action: "create" | "replace" | "append"; currentLength: number; previewFragment: string }> {
-  const block = [
-    DREAM_BEGIN_MARKER,
-    "## Opencode-Dream consolidated memory",
-    "",
-    memoryMarkdown.trim() || "_(no memory content yet)_",
-    DREAM_END_MARKER,
-  ].join("\n")
+  const block = buildDreamManagedBlock(memoryMarkdown)
 
   let existing = ""
   try {
@@ -26,9 +19,7 @@ async function buildPreview(
     return { action: "create", currentLength: 0, previewFragment: block.slice(0, 500) }
   }
 
-  const begin = existing.indexOf(DREAM_BEGIN_MARKER)
-  const end = existing.indexOf(DREAM_END_MARKER)
-  if (begin >= 0 && end > begin) {
+  if (findDreamManagedBlockBounds(existing)) {
     return { action: "replace", currentLength: existing.length, previewFragment: block.slice(0, 500) }
   }
   return { action: "append", currentLength: existing.length, previewFragment: block.slice(0, 500) }
