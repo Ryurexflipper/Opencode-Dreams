@@ -5,19 +5,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-> Give your AI coding agent a long-term memory.
+> Stops your AI coding agent from repeating the same mistakes.
 
-`opencode-dreams` is an [OpenCode](https://github.com/sst/opencode) plugin that automatically turns your coding sessions into durable, compounding knowledge through a two-stage **Reflect → Dream** pipeline. Instead of starting each session from scratch, your agent carries forward everything it has learned — decisions made, patterns found, mistakes fixed.
+`opencode-dreams` is an [OpenCode](https://github.com/sst/opencode) plugin that reflects on every coding session and consolidates **failure modes, learned patterns, and preferences** into a persistent knowledge base. That knowledge is automatically injected back into every future session — so your agent stops hitting the same walls, making the same wrong choices, and asking the same questions twice.
 
 Inspired by the **OpenDream** conceptual model. This repository is the OpenCode-specific implementation: concrete plugin packaging, external memory integrations, and a hardened baseline validated through eight phases of adversarial regression testing. Credit for the underlying Reflect/Dream backbone belongs to the original OpenDream work and its maintainers.
 
-**What it does in one sentence:** every session becomes a reflection, reflections become consolidated memory, memory gets injected into every future session and exported to `AGENTS.md` — automatically.
+**What it does in one sentence:** after each session the agent reflects on what went wrong and what worked, consolidates that into durable memory, and injects it into every session that follows.
 
 ### Key features
 
+- **Failure mode tracking** — mistakes, wrong approaches, and dead ends are explicitly captured and stored as `failure_mode` memory entries so they are never repeated
+- **Pattern and preference learning** — workflows, tool sequences, and preferences compound across sessions into `pattern`, `workflow`, and `preference` entries
 - **Automatic session capture** — live events are recorded as they happen; no manual export needed
-- **Two-stage pipeline** — Stage 1 (Reflect) distils each session; Stage 2 (Dream) consolidates across all sessions
-- **Durable `AGENTS.md` export** — memory is written into a managed block your agent reads at the start of every session
+- **Two-stage pipeline** — Stage 1 (Reflect) analyses each session; Stage 2 (Dream) consolidates across all sessions into generalizable knowledge
+- **Durable `AGENTS.md` export** — consolidated memory is written into a managed block your agent reads at the start of every session
 - **External memory sync** — pulls in memories from `opencode-mem`, `true-mem`, `simple-memory`, and `opencode-lcm`
 - **15 composable tools** — call any stage individually or chain the full pipeline in one go
 - **Hardened and tested** — 182/182 tests across 8 adversarial hardening phases; structured error boundaries throughout
@@ -43,18 +45,130 @@ See also:
 - `docs/OPENDREAM-MAPPING.md`
 - `docs/adversarial-hardening-status.md`
 
+## Quick setup — copy-paste prompt for your AI
+
+Give this prompt to your AI agent (in any OpenCode session) to have it install and configure `opencode-dreams` automatically:
+
+```
+Please set up the opencode-dreams plugin in this project by doing the following steps in order:
+
+1. Run: npm install opencode-dreams
+2. Open or create opencode.json in the project root. Add opencode-dreams to the plugin array with this config:
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "model": "github-copilot/gpt-5.4",
+     "provider": { "github-copilot": {} },
+     "plugin": [
+       ["opencode-dreams", {
+         "preferredReflectModel": "github-copilot/gpt-5.4",
+         "preferredDreamModel": "github-copilot/gpt-5.4",
+         "captureLiveSessions": true,
+         "logLevel": "info"
+       }]
+     ]
+   }
+   If opencode.json already exists and has a plugin array, append the opencode-dreams entry to it. Do not remove existing plugins.
+3. Call opendream_init to create the .opencode-dream/ workspace layout.
+4. Call opendream_info to confirm the plugin is running.
+5. Tell me the current pipeline status shown by opendream_info.
+```
+
+> Adjust `"model"` and `"preferredReflectModel"` / `"preferredDreamModel"` to whatever model you are using in OpenCode.
+
 ## Installation
+
+### Requirements
+
+- [OpenCode](https://github.com/sst/opencode) installed and configured
+- Node.js `>=20`
+- A model available in your OpenCode setup for reflection and consolidation
+
+**Supported models (examples):**
+
+| Provider | Model ID | Notes |
+|---|---|---|
+| GitHub Copilot | `github-copilot/gpt-5.4` | Recommended — fast, strong reasoning |
+| GitHub Copilot | `github-copilot/gpt-4.5` | Good alternative |
+| GitHub Copilot | `github-copilot/claude-sonnet-4-5` | Strong for nuanced reflection |
+| Anthropic | `anthropic/claude-sonnet-4-5` | If using Anthropic provider |
+| Anthropic | `anthropic/claude-opus-4-5` | Best quality, slower |
+| OpenAI | `openai/gpt-4o` | If using OpenAI provider |
+| OpenAI | `openai/o3` | Strong reasoning for consolidation |
+| AWS Bedrock | `aws/claude-sonnet-4-5` | If using Bedrock provider |
+
+Any model available in your OpenCode provider config works. Use the same format: `providerID/modelID`.
+
+### Step 1 — Install the package
 
 ```bash
 npm install opencode-dreams
 ```
 
-Then register the plugin in `opencode.json`:
+### Step 2 — Add the plugin to `opencode.json`
+
+In your project root, open (or create) `opencode.json` and add `opencode-dreams` to the `plugin` array:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "github-copilot/gpt-5.4",
+  "provider": {
+    "github-copilot": {}
+  },
+  "plugin": [
+    ["opencode-dreams", {
+      "preferredReflectModel": "github-copilot/gpt-5.4",
+      "preferredDreamModel": "github-copilot/gpt-5.4"
+    }]
+  ]
+}
+```
+
+### Step 3 — Initialise the workspace
+
+Start an OpenCode session and tell your agent:
+
+```
+Call opendream_init to set up the workspace.
+```
+
+This creates the `.opencode-dream/` directory layout and optional `AGENTS.md` markers. Only needed once per project.
+
+### Step 4 — Verify the plugin loaded
+
+```
+Call opendream_info to confirm the plugin is running and show pipeline status.
+```
+
+### Plugin config options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `preferredReflectModel` | string | — | Model for Stage 1 reflection (e.g. `github-copilot/gpt-5.4`) |
+| `preferredDreamModel` | string | — | Model for Stage 2 consolidation |
+| `projectRelativeStateDir` | string | `.opencode-dream` | Where plugin state is stored relative to project root |
+| `captureLiveSessions` | boolean | `true` | Auto-capture live session events |
+| `logLevel` | string | `info` | `debug` \| `info` \| `warn` \| `error` |
+| `opencodeMem.enabled` | boolean | `false` | Enable opencode-mem integration |
+| `opencodeMem.url` | string | `http://127.0.0.1:4747` | opencode-mem server URL |
+| `opencodeMem.importMode` | string | `append` | `append` or `replace` when merging external memories |
+
+### Using a local build instead of npm
+
+If you want to use a local clone instead of the published package:
+
+```bash
+git clone https://github.com/Ryurexflipper/Opencode-Dreams.git
+cd Opencode-Dreams
+npm install && npm run build
+```
+
+Then in `opencode.json` point to the built output directly:
 
 ```jsonc
 {
   "plugin": [
-    ["opencode-dreams", {
+    ["file:///ABSOLUTE/PATH/TO/Opencode-Dreams/dist/src/index.js", {
       "preferredReflectModel": "github-copilot/gpt-5.4",
       "preferredDreamModel": "github-copilot/gpt-5.4"
     }]
