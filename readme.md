@@ -1,6 +1,6 @@
-# opencode-dream
+# opencode-dreams
 
-`opencode-dream` is an [OpenCode](https://github.com/sst/opencode) plugin that turns coding sessions into durable memory through a two-stage **Reflect → Dream** pipeline.
+`opencode-dreams` is an [OpenCode](https://github.com/sst/opencode) plugin that turns coding sessions into durable memory through a two-stage **Reflect → Dream** pipeline.
 
 It is heavily inspired by the broader **OpenDream** model and ecosystem. This repository adapts that backbone into a concrete OpenCode plugin implementation with its own hardening, packaging, integration, and operational layers. Credit for the underlying Reflect/Dream conceptual backbone belongs to the original OpenDream work and maintainers.
 
@@ -35,7 +35,7 @@ See also:
 ## Installation
 
 ```bash
-npm install opencode-dream
+npm install opencode-dreams
 ```
 
 Then register the plugin in `opencode.json`:
@@ -43,7 +43,7 @@ Then register the plugin in `opencode.json`:
 ```jsonc
 {
   "plugin": [
-    ["opencode-dream", {
+    ["opencode-dreams", {
       "preferredReflectModel": "github-copilot/gpt-5.4",
       "preferredDreamModel": "github-copilot/gpt-5.4"
     }]
@@ -130,6 +130,146 @@ The plugin currently exposes **15 tools**:
   - `opendream_mem_probe`
   - `opendream_mem_sync`
   - `opendream_ext_mem_sync`
+
+## Usage guide
+
+### Typical session workflow
+
+Run these tools inside an OpenCode session (tell your agent to call them by name):
+
+```
+1. opendream_info           — check plugin status and pipeline state
+2. opendream_reflect_run    — reflect on the most recent session
+3. opendream_dream_run      — consolidate all reflections into memory
+4. opendream_memory_apply   — write consolidation into memory/current.md
+5. opendream_export_agents  — update AGENTS.md with current memory
+```
+
+After a few sessions, memory compounds automatically — each Dream pass builds on prior ones.
+
+---
+
+### Tool reference
+
+#### Setup and status
+
+| Tool | What it does |
+|---|---|
+| `opendream_info` | Shows plugin config, tool inventory, and current pipeline state (session/reflection/dream counts) |
+| `opendream_init` | Initialises the `.opencode-dreams/` workspace layout and optional `AGENTS.md` markers |
+| `opendream_memory_status` | Shows the current memory file path, size, and whether markers are intact |
+
+#### Session ingest
+
+| Tool | What it does |
+|---|---|
+| `opendream_ingest_generic_jsonl` | Validates and stages a JSONL session export into the import queue for reflection |
+
+#### Stage 1 — Reflect
+
+| Tool | What it does |
+|---|---|
+| `opendream_reflect_prompt` | Renders the reflection prompt for a stored session (for manual inspection or external LLM use) |
+| `opendream_reflect_import_json` | Validates and stores a reflection JSON you produced externally |
+| `opendream_reflect_run` | Runs LLM-backed reflection for a single session |
+| `opendream_reflect_batch` | Runs LLM-backed reflection for all un-reflected sessions in one pass |
+
+#### Stage 2 — Dream
+
+| Tool | What it does |
+|---|---|
+| `opendream_dream_prompt` | Renders the consolidation prompt across all stored reflections (for manual inspection) |
+| `opendream_dream_run` | Runs LLM-backed consolidation and saves the dream output |
+
+#### Memory and export
+
+| Tool | What it does |
+|---|---|
+| `opendream_memory_apply` | Applies the latest dream consolidation into `memory/current.md` |
+| `opendream_export_agents` | Writes current memory into the managed block in `AGENTS.md` |
+
+#### External memory sync
+
+| Tool | What it does |
+|---|---|
+| `opendream_mem_probe` | Reads raw items from the opencode-mem server without writing anything |
+| `opendream_mem_sync` | Pulls opencode-mem memories into `memory/current.md` |
+| `opendream_ext_mem_sync` | Pulls from **all** configured external memory sources in one command |
+
+---
+
+### Using opencode-mem with opencode-dreams
+
+`opencode-mem` is a separate memory server that stores memories independently of sessions. `opencode-dreams` can pull those memories into its own pipeline so agents always have both kinds of context.
+
+**Step 1 — Enable opencode-mem in your `opencode.json`:**
+
+```jsonc
+{
+  "plugin": [
+    ["opencode-dreams", {
+      "preferredReflectModel": "github-copilot/gpt-5.4",
+      "preferredDreamModel": "github-copilot/gpt-5.4",
+      "opencodeMem": {
+        "enabled": true,
+        "url": "http://127.0.0.1:4747",
+        "importMode": "append",
+        "maxItemLength": 1000
+      }
+    }]
+  ]
+}
+```
+
+| Option | Default | Description |
+|---|---|---|
+| `enabled` | `false` | Must be `true` to activate the integration |
+| `url` | `http://127.0.0.1:4747` | Base URL of your running opencode-mem server |
+| `importMode` | `"append"` | `"append"` replaces the existing block or adds it; `"replace"` rebuilds the whole memory file |
+| `maxItemLength` | `1000` | Truncates long memory items to this character limit |
+
+**Step 2 — Sync memories during a session:**
+
+Tell your agent:
+```
+Call opendream_mem_sync to pull my opencode-mem memories into the pipeline.
+```
+
+Or use the unified command to sync all sources at once:
+```
+Call opendream_ext_mem_sync to pull from all external memory sources.
+```
+
+You can also pass arguments:
+```
+Call opendream_mem_sync with url="http://127.0.0.1:4747" and dryRun=true
+```
+
+**Step 3 — After sync, export to AGENTS.md:**
+```
+Call opendream_export_agents to write the updated memory into AGENTS.md.
+```
+
+**Recommended session start sequence with opencode-mem:**
+```
+1. opendream_ext_mem_sync   — pull latest external memories
+2. opendream_reflect_batch  — reflect any un-processed sessions
+3. opendream_dream_run      — consolidate everything
+4. opendream_memory_apply   — persist to memory/current.md
+5. opendream_export_agents  — update AGENTS.md
+```
+
+---
+
+### Environment variables
+
+These can be set in `.env` or your shell — they are optional overrides. The plugin config in `opencode.json` takes priority.
+
+| Variable | Description |
+|---|---|
+| `OPENCODE_DREAM_REFLECT_MODEL` | Model to use for Stage 1 reflection (e.g. `github-copilot/gpt-5.4`) |
+| `OPENCODE_DREAM_DREAM_MODEL` | Model to use for Stage 2 consolidation |
+| `OPENCODE_DREAM_LOG_LEVEL` | Log verbosity: `debug`, `info`, `warn`, `error` (default: `info`) |
 
 ## How it improves itself over time
 
