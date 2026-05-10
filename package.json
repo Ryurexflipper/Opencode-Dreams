@@ -1,6 +1,6 @@
 {
   "name": "opencode-dreams",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Give your AI coding agent a long-term memory. OpenCode plugin that turns sessions into durable knowledge through a Reflect → Dream pipeline.",
   "type": "module",
   "main": "dist/src/index.js",
