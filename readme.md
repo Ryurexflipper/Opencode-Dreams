@@ -1,16 +1,27 @@
 # opencode-dreams
 
-`opencode-dreams` is an [OpenCode](https://github.com/sst/opencode) plugin that turns coding sessions into durable memory through a two-stage **Reflect → Dream** pipeline.
+[![npm version](https://img.shields.io/npm/v/opencode-dreams.svg)](https://www.npmjs.com/package/opencode-dreams)
+[![CI](https://github.com/Ryurexflipper/Opencode-Dreams/actions/workflows/ci.yml/badge.svg)](https://github.com/Ryurexflipper/Opencode-Dreams/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-It is heavily inspired by the broader **OpenDream** model and ecosystem. This repository adapts that backbone into a concrete OpenCode plugin implementation with its own hardening, packaging, integration, and operational layers. Credit for the underlying Reflect/Dream conceptual backbone belongs to the original OpenDream work and maintainers.
+> Give your AI coding agent a long-term memory.
 
-It combines:
-- live session capture and imported trace ingestion
-- per-session reflection generation
-- cross-session consolidation into durable memory
-- export into `AGENTS.md`
-- external memory sync from popular OpenCode memory plugins
-- a regression-hardened baseline validated through adversarial testing phases
+`opencode-dreams` is an [OpenCode](https://github.com/sst/opencode) plugin that automatically turns your coding sessions into durable, compounding knowledge through a two-stage **Reflect → Dream** pipeline. Instead of starting each session from scratch, your agent carries forward everything it has learned — decisions made, patterns found, mistakes fixed.
+
+Inspired by the **OpenDream** conceptual model. This repository is the OpenCode-specific implementation: concrete plugin packaging, external memory integrations, and a hardened baseline validated through eight phases of adversarial regression testing. Credit for the underlying Reflect/Dream backbone belongs to the original OpenDream work and its maintainers.
+
+**What it does in one sentence:** every session becomes a reflection, reflections become consolidated memory, memory gets injected into every future session and exported to `AGENTS.md` — automatically.
+
+### Key features
+
+- **Automatic session capture** — live events are recorded as they happen; no manual export needed
+- **Two-stage pipeline** — Stage 1 (Reflect) distils each session; Stage 2 (Dream) consolidates across all sessions
+- **Durable `AGENTS.md` export** — memory is written into a managed block your agent reads at the start of every session
+- **External memory sync** — pulls in memories from `opencode-mem`, `true-mem`, `simple-memory`, and `opencode-lcm`
+- **15 composable tools** — call any stage individually or chain the full pipeline in one go
+- **Hardened and tested** — 182/182 tests across 8 adversarial hardening phases; structured error boundaries throughout
+- **MIT licensed** — free to use, modify, and distribute
 
 ```text
 Live session / imported trace
