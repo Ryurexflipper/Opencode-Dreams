@@ -21,8 +21,7 @@ Thumbs.db
 coverage/
 .vitest/
 
-# Opencode-Dream local state (user-specific)
-.opencode-dream/
+# Opencode-Dream runtime logs (user-specific, not a template)
 .logs/
 
 # npm publish scratch
